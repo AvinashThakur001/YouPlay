@@ -1,17 +1,21 @@
+// import vaiables from .env;
 import dotenv from "dotenv";
-import express from "express";
 
-import connectDB from "./db/db.js";
-
-
-const app=express();
-console.log(process.env.MONGODB_URI)
-connectDB();
-
-app.get("/",(req,res)=>{
-    res.send("hello")
+import connectDB from "./db/db.js"; //import connectDB from db/db.js
+import app from "./app.js"; //import app from app.js
+ 
+const PORT = process.env.PORT || 8000; // port number
+//calling conect to bd function
+connectDB()
+.then(()=>{
+    console.log("connected to database sucessfully ");
+    app.on("error",error=>console.log(error)) //error handling
+    app.listen(PORT ,()=>console.log(`server running on port ${PORT}`))//listening to port
 })
-app.listen(8000,()=>console.log(`server running on port ${process.env.PORT}`))
+.catch((error)=>{
+    console.log("error connecting to database",error);s
+});
+
 
 
 

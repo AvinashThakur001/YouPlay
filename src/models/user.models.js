@@ -1,6 +1,28 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import { validate } from "uuid";
+
+
+const CoverImageSchema = new mongoose.Schema({
+    url: {
+        type: String,
+        required: true
+    },
+    public_id: {
+        type: String,
+        required : function() {
+            return !! this.url
+        },
+        validate: {
+            validator: function(value) {
+               if(this.url && !value) return false
+               return true
+            },
+            message: "Cover image is required"
+        }
+    }
+},{_id: false})
 
 const UserSchema = new mongoose.Schema(
     {
@@ -38,11 +60,17 @@ const UserSchema = new mongoose.Schema(
             ]
         ,
         avatar:{
-            type: String, // cloudnary url
-            required: true
+            url: {
+                type: String,
+                required: true
+            },
+            public_id: {
+                type: String,
+                required: true
+            }
         },
         coverImage:{
-            type: String, // cloudnary url
+            type: CoverImageSchema
         },
         password:{
             type: String,

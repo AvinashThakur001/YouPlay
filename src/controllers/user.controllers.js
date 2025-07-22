@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {User} from "../models/user.models.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import {ApiError} from "../utils/ApiError.js";
-import uploadOnCloudinary from "../utils/cloudinary.services.js";
+import uploadOnCloudinary , {deleteFromCloudinary} from "../utils/cloudinary.services.js";
 import jwt from "jsonwebtoken";
 
 
@@ -52,7 +52,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatarLocalPath = req.files?.avatar[0].path;
     // const coverImageLocalPath = req.files.coverImage[0].path || null; //vs
     let coverImageLocalPath 
-    if(req.flies && Array.isArray(req.files.coverImage)) {
+    if(req.files && Array.isArray(req.files.coverImage)) {
         coverImageLocalPath = req.files.coverImage[0].path;
     }
 
@@ -71,8 +71,14 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         password,
         userName: userName.toLowerCase(),
-        avatar: avatar?.url,
-        coverImage: coverImage?.url || "",
+        avatar: {
+            public_id: avatar.public_id,
+            url: avatar.url
+        },
+        coverImage: coverImage?.url ? {
+            url: coverImage.url,
+            public_id: coverImage.public_id
+        } : undefined || null,
     });
   
     const createdUser = await User.findById(user._id).select("-password");
@@ -129,7 +135,7 @@ const loginUser = asyncHandler(async(req,res)=>{
 
 const logoutUser = asyncHandler(async(req,res)=>{
    await User.findByIdAndUpdate(req.user._id, 
-       {$set : {refreshToken: undefined}},
+       {$unset : {refreshToken: 1}},
        {new: true}
    )
 
@@ -271,27 +277,36 @@ const changeAvatar = asyncHandler(async(req,res)=>{
 
     const avatarLocalPath = req.file?.path;
 
-   if(!avatarLocalPath){
-    throw new ApiError(400, "Avatar required");
-   }
+    if(!avatarLocalPath){
+        throw new ApiError(400, "Avatar required");
+    }
 
-   const avatar = await uploadOnCloudinary(avatarLocalPath);
+    await deleteFromCloudinary(req.user?.avatar?.public_id);
 
-   if(!avatar){
-    throw new ApiError(500, "Failed to upload avatar");
-   }
+    let avatar = "";
+    try {
+        avatar = await uploadOnCloudinary(avatarLocalPath);
+    } catch (error) {
+        throw new ApiError(500, "Failed to upload avatar");
+    }
+    if(!avatar && avatar !== ""){
+        throw new ApiError(500, "Failed to upload avatar");
+    }
 
-   const user = await User.findByIdAndUpdate(req.user?._id,
-    {
-        $set : {
-            avatar: avatar.url
-        }
-    },
-    {new: true});
+    const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set : {
+                avatar:{ 
+                    url: avatar.url,
+                    public_id: avatar.public_id
+                }
+            }
+        },
+        {new: true});
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200, "Avatar updated successfully",user));
+        return res
+        .status(200)
+        .json(new ApiResponse(200, "Avatar updated successfully",user));
 
 })
 
@@ -299,25 +314,35 @@ const changeCoverImage = asyncHandler(async(req,res)=>{
 
     const coverImageLocalPath = req.file?.path;
 
-   if(!coverImageLocalPath){
-    throw new ApiError(400, "Cover image required");
-   }
+    if(!coverImageLocalPath){
+        throw new ApiError(400, "Cover image required");
+    }
 
-   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    await deleteFromCloudinary(req.user?.coverImage?.public_id);
 
-   if(!coverImage){
-    throw new ApiError(500, "Failed to upload cover image");
-   }
+    let coverImage;
+        try {
+            coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    } catch (error) {
+             throw new ApiError(500, "Failed to upload cover image");
+    }
 
-   const user = await User.findByIdAndUpdate(req.user?._id,
-    {$set: {
-        coverImage: coverImage.url
-    }},
-    {new: true});
-    
-    return res
-    .status(200)
-    .json(new ApiResponse(200, "Cover image updated successfully",user));
+    if(!coverImage){
+        throw new ApiError(500, "Failed to upload cover image");
+    }
+
+    const user = await User.findByIdAndUpdate(req.user?._id,
+        {$set: {
+            coverImage: {
+                url:coverImage.url, 
+                public_id:coverImage.public_id
+            }
+        }},
+        {new: true});
+        
+        return res
+        .status(200)
+        .json(new ApiResponse(200, "Cover image updated successfully",user));
 });
 
 const getCurrentUserInfo = asyncHandler(async(req,res)=>{

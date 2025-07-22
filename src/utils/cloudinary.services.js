@@ -13,6 +13,7 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     const result = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto", // handles images, videos, etc.
+      folder: "YourPlay",
     });
 
     // Remove local file after successful upload
@@ -30,6 +31,15 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     console.error("Cloudinary upload error:", err.message);
     return null;
+  }
+};
+
+export const deleteFromCloudinary = async (publicId) => {
+  try {
+    await cloudinary.uploader.destroy(publicId);
+    console.log("File deleted from Cloudinary:", publicId);
+  } catch (err) {
+    console.error("Cloudinary delete error:", err.message);
   }
 };
 

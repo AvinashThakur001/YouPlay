@@ -10,6 +10,8 @@ import {registerUser,
          changeAvatar,
          changeCoverImage,
          getCurrentUserInfo,
+         getUserChannelProfile,
+         getWatchHistory,
     } 
     from "../controllers/user.controllers.js";
 
@@ -32,6 +34,9 @@ router.route("/changePassword").patch(verifyJWT,changeCurrentPassword)
 router.route("/updateUserDetails").patch(verifyJWT,UpdateUserDetails)
 router.route("/changeAvatar").patch(verifyJWT,upload.single("avatar"),changeAvatar)
 router.route("/changeCoverImage").patch(verifyJWT,upload.single("coverImage"),changeCoverImage)
+
 router.route("/userInfo").get(verifyJWT,getCurrentUserInfo)
+router.route("/c/:userName").get(verifyJWT,getUserChannelProfile)
+router.route("/history").get(verifyJWT,getWatchHistory)
 
 export default router

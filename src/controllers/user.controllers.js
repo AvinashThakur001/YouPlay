@@ -368,6 +368,8 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     if(!userName?.trim()){
         throw new ApiError(400, "Username missing");
     }
+
+    const loggedInUserId = req.user?._id;
     
     const channel = await User.aggregate([
         {
@@ -378,7 +380,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         {
             $lookup:{
                 from:"subscriptions",
-                localField:_id,
+                localField:"_id",
                 foreignField:"channel",
                 as:"subscribers"
             }
@@ -386,7 +388,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         {
             $lookup:{
                 from:"subscriptions",
-                localField:_id,
+                localField:"_id",
                 foreignField:"subscriber",
                 as:"subscriberd_to"
             }
@@ -394,15 +396,15 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         {
             $addFields:{
                 subscribersCount:{
-                    $size:"$subscribers"
+                    $size: { $ifNull: ["$subscribers", []] }
                 },
                 channelSubscribedTo:{
-                    $size:"$subscribed_to"
+                    $size: { $ifNull: ["$subscribed_to", []] }
                 },
                 isSubscribed:{
-                    $condition:{
-                       if:{$in:[req.user?._id , "$subscribers.subscriber"]},
-                       $then:true,
+                    $cond:{
+                       if:{$in:[loggedInUserId , "$subscribers.subscriber"]},
+                       then:true,
                        else:false
                     }
                 }
@@ -426,7 +428,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     }
 
     return res
-    .status("200")
+    .status(200)
     .json(
         new ApiResponse("200","channel fetched sucessfully",channel[0])
     )

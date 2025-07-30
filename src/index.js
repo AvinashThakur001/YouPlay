@@ -2,7 +2,7 @@
 import dotenv from "dotenv";
 
 import connectDB from "./db/db.js"; //import connectDB from db/db.js
-import app from "./app.js"; //import app from app.js
+import {app} from "./app.js"; //import app from app.js
  
 const PORT = process.env.PORT || 3000; // port number
 //calling conect to bd function
